@@ -156,7 +156,7 @@
         }
         tr:hover { background-color: rgba(245, 158, 11, 0.03); }
 
-        /* Dezente Trennlinien und Markierungen in der Tabelle */
+        /* Dezente Trennlinien nach Platz 8 und Platz 24 */
         tr.rank-eight-end td {
             border-bottom: 2px solid rgba(245, 158, 11, 0.4);
         }
@@ -164,7 +164,6 @@
             border-bottom: 2px solid rgba(139, 148, 158, 0.4);
         }
 
-        /* Dezentes Indikator-Pünktchen für die Gruppen vor dem Platz */
         .zone-indicator {
             display: inline-block;
             width: 6px;
@@ -173,9 +172,37 @@
             margin-right: 6px;
             vertical-align: middle;
         }
-        .zone-top8 { background-color: #3fb950; }       /* Grün für Achtelfinale */
-        .zone-playoff { background-color: #8b949e; }   /* Dezent Grau/Silber für Play-Offs */
-        .zone-out { background-color: transparent; }     /* Nichts für Plätze 25-36 */
+        .zone-top8 { background-color: #3fb950; }
+        .zone-playoff { background-color: #8b949e; }
+        .zone-out { background-color: transparent; }
+
+        /* LIVE-Badge Styling mit Pulsier-Effekt */
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(248, 81, 73, 0.15);
+            color: #f85149;
+            border: 1px solid rgba(248, 81, 73, 0.4);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .live-dot {
+            width: 6px;
+            height: 6px;
+            background-color: #f85149;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.4; }
+            100% { transform: scale(0.95); opacity: 1; }
+        }
 
         /* Hervorhebung für deutsche Teams in der Gesamttabelle */
         tr.german-team-row td {
@@ -313,7 +340,7 @@
                     <tr>
                         <th style="width: 130px; color: #ffffff;">Termin</th>
                         <th style="text-align: right;">Heimmannschaft</th>
-                        <th style="text-align: center; width: 100px;">Ergebnis</th>
+                        <th style="text-align: center; width: 140px;">Ergebnis / Status</th>
                         <th>Gastmannschaft</th>
                         <th style="width: 40px; text-align: center;"></th>
                     </tr>
@@ -344,7 +371,6 @@
                 <tbody id="tableBody"></tbody>
             </table>
         </div>
-        <!-- Dezente Legende unter der Tabelle -->
         <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-top: 14px; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 10px;">
             <div style="display: flex; align-items: center; gap: 6px;"><span class="zone-indicator zone-top8"></span> <strong>Plätze 1 – 8:</strong> Direkt fürs Achtelfinale</div>
             <div style="display: flex; align-items: center; gap: 6px;"><span class="zone-indicator zone-playoff"></span> <strong>Plätze 9 – 24:</strong> Play-Off-Runde</div>
@@ -623,14 +649,29 @@
     }
 
     function renderAll() {
-        let mDayKey = `${leagueData.currentMatchday}. Spieltag`;
-        document.getElementById('matchdayDisplay').textContent = mDayKey;
-        document.getElementById('adminMatchdayLabel').textContent = mDayKey;
-        document.getElementById('matchdayTableHeader').textContent = `${mDayKey} — Spiele & Ergebnisse`;
+        let mDayKey = `${leagueData.currentMatchday}. Spielstand`;
+        document.getElementById('matchdayDisplay').textContent = `${leagueData.currentMatchday}. Spieltag`;
+        document.getElementById('adminMatchdayLabel').textContent = `${leagueData.currentMatchday}. Spieltag`;
+        document.getElementById('matchdayTableHeader').textContent = `${leagueData.currentMatchday}. Spieltag — Spiele & Ergebnisse`;
         
         renderMatchdayTable();
         renderTable();
         if (isAdmin) renderInputForm();
+    }
+
+    // Hilfsfunktion zur Live-Erkennung anhand von Datum & Uhrzeit
+    function isMatchLive(matchDate, matchTime) {
+        if (!matchDate || !matchTime) return false;
+        try {
+            let matchStart = new Date(`${matchDate}T${matchTime}:00`);
+            let now = new Date();
+            let diffMs = now - matchStart;
+            let diffMins = diffMs / (1000 * 60);
+            // Spiel läuft, wenn es vor maximal 120 Minuten begonnen hat und noch nicht vorbei ist
+            return diffMins >= 0 && diffMins <= 120;
+        } catch (e) {
+            return false;
+        }
     }
 
     function renderMatchdayTable() {
@@ -648,9 +689,23 @@
             let homeClass = germanTeams.includes(m.home) ? 'german-highlight' : '';
             let awayClass = germanTeams.includes(m.away) ? 'german-highlight' : '';
 
-            let resultDisplay = hasResult 
-                ? `<strong>${m.homeScore}:${m.awayScore}</strong>` 
-                : `<span style="color: var(--text-muted); font-style: italic;">-:-</span>`;
+            // Prüfen ob das Spiel aktuell im Live-Zeitfenster ist (und noch kein endgültiges Ergebnis vorliegt oder gerade Tore fallen)
+            let liveNow = isMatchLive(m.date, m.time);
+
+            let resultDisplay = '';
+            if (hasResult) {
+                if (liveNow) {
+                    resultDisplay = `<strong>${m.homeScore}:${m.awayScore}</strong> <span class="live-badge"><span class="live-dot"></span>LIVE</span>`;
+                } else {
+                    resultDisplay = `<strong>${m.homeScore}:${m.awayScore}</strong>`;
+                }
+            } else {
+                if (liveNow) {
+                    resultDisplay = `<span class="live-badge"><span class="live-dot"></span>LIVE</span>`;
+                } else {
+                    resultDisplay = `<span style="color: var(--text-muted); font-style: italic;">-:-</span>`;
+                }
+            }
 
             let deleteBtn = isAdmin ? `<button class="btn-danger" onclick="deleteMatchResult(${idx})" title="Ergebnis löschen">✕</button>` : '';
 
@@ -717,19 +772,16 @@
         sorted.forEach((s, idx) => {
             let tr = document.createElement('tr');
             
-            // Dezente Trennlinien nach Platz 8 und Platz 24
             if (idx === 7) {
                 tr.classList.add('rank-eight-end');
             } else if (idx === 23) {
                 tr.classList.add('rank-playoff-end');
             }
 
-            // Kleines Indikator-Pünktchen vor der Platzierung
             let indicatorClass = 'zone-out';
             if (idx < 8) indicatorClass = 'zone-top8';
             else if (idx >= 8 && idx < 24) indicatorClass = 'zone-playoff';
 
-            // Deutsche Teams erhalten Gold-Färbung
             if (germanTeams.includes(s.name)) {
                 tr.classList.add('german-team-row');
             }
