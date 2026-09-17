@@ -17,6 +17,7 @@
             --el-gold-hover: #d97706;
             --el-dark: #78350f;
             --accent-green: rgba(46, 160, 67, 0.25);
+            --accent-blue: rgba(56, 139, 253, 0.22);
             --accent-yellow: rgba(227, 179, 64, 0.22);
             --el-bright-gold: #fbbf24;
         }
@@ -158,21 +159,22 @@
         }
         tr:hover { background-color: rgba(245, 158, 11, 0.03); }
 
-        tr.rank-first td {
+        /* Tabellen-Markierungen nach UEFA-Modus */
+        tr.rank-eight td {
             background: var(--accent-green);
             color: #3fb950;
             font-weight: bold;
         }
-        tr.rank-last td {
-            background: var(--accent-yellow);
-            color: #e3b341;
+        tr.rank-playoff td {
+            background: var(--accent-blue);
+            color: #58a6ff;
         }
 
         /* Hervorhebung für deutsche Teams in der Gesamttabelle */
         tr.german-team-row td {
             font-weight: bold;
             color: var(--el-bright-gold);
-            background: rgba(245, 158, 11, 0.15);
+            background: rgba(245, 158, 11, 0.2) !important;
             border-top: 1px solid rgba(245, 158, 11, 0.4);
             border-bottom: 1px solid rgba(245, 158, 11, 0.4);
         }
@@ -337,6 +339,11 @@
                 <tbody id="tableBody"></tbody>
             </table>
         </div>
+        <!-- Legende unter der Tabelle -->
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 12px; font-size: 0.75rem; color: var(--text-muted);">
+            <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 14px; height: 14px; background: var(--accent-green); border-radius: 2px; display: inline-block;"></span> Plätze 1 – 8: Direkt fürs Achtelfinale qualifiziert</div>
+            <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 14px; height: 14px; background: var(--accent-blue); border-radius: 2px; display: inline-block;"></span> Plätze 9 – 24: Qualifiziert für die Play-Off-Runde</div>
+        </div>
     </div>
 
     <!-- ADMIN BEREICH -->
@@ -362,7 +369,6 @@
     const ADMIN_PIN = "1919";
     let isAdmin = false;
 
-    // Liste der deutschen Vereine zur Identifikation
     const germanTeams = ["Bayer 04 Leverkusen", "1899 Hoffenheim"];
 
     let leagueData = {
@@ -629,7 +635,7 @@
         let existingMatches = leagueData.matches[mDayKey] || [];
 
         existingMatches.forEach((m, idx) => {
-            let hasResult = m.homeScore !== undefined && m.awayScore !== undefined;
+            let hasResult = m.homeScore !== undefined && m.homeScore !== null && m.awayScore !== undefined && m.awayScore !== null;
             let formattedDate = m.date ? m.date.split('-').reverse().join('.') : '-';
             let timeStr = m.time ? ` ${m.time} Uhr` : '';
 
@@ -639,7 +645,7 @@
 
             let resultDisplay = hasResult 
                 ? `<strong>${m.homeScore}:${m.awayScore}</strong>` 
-                : `<span style="color: var(--text-muted); font-style: italic;">vs</span>`;
+                : `<span style="color: var(--text-muted); font-style: italic;">-:-</span>`;
 
             let deleteBtn = isAdmin ? `<button class="btn-danger" onclick="deleteMatchResult(${idx})" title="Ergebnis löschen">✕</button>` : '';
 
@@ -669,7 +675,7 @@
         Object.values(leagueData.matches).forEach(matchList => {
             if (!Array.isArray(matchList)) return;
             matchList.forEach(m => {
-                if (m.homeScore === undefined || m.awayScore === undefined || !stats[m.home] || !stats[m.away]) return;
+                if (m.homeScore === undefined || m.homeScore === null || m.awayScore === undefined || m.awayScore === null || !stats[m.home] || !stats[m.away]) return;
                 
                 stats[m.home].played++;
                 stats[m.away].played++;
@@ -705,9 +711,15 @@
 
         sorted.forEach((s, idx) => {
             let tr = document.createElement('tr');
-            if (idx === 0) tr.classList.add('rank-first');
-            else if (idx >= sorted.length - 3 && sorted.length > 3) tr.classList.add('rank-last');
             
+            // UEFA Europa League Platzierungs-Klassen
+            if (idx < 8) {
+                tr.classList.add('rank-eight');
+            } else if (idx >= 8 && idx < 24) {
+                tr.classList.add('rank-playoff');
+            }
+
+            // Deutsche Teams erhalten Priorität in der Markierung
             if (germanTeams.includes(s.name)) {
                 tr.classList.add('german-team-row');
             }
@@ -755,11 +767,11 @@
                     </div>
                     <div class="form-group">
                         <label>Tore Heim</label>
-                        <input type="number" id="hs_${idx}" class="form-control" value="${m.homeScore !== undefined ? m.homeScore : ''}" min="0">
+                        <input type="number" id="hs_${idx}" class="form-control" value="${m.homeScore !== undefined && m.homeScore !== null ? m.homeScore : ''}" min="0">
                     </div>
                     <div class="form-group">
                         <label>Tore Gast</label>
-                        <input type="number" id="as_${idx}" class="form-control" value="${m.awayScore !== undefined ? m.awayScore : ''}" min="0">
+                        <input type="number" id="as_${idx}" class="form-control" value="${m.awayScore !== undefined && m.awayScore !== null ? m.awayScore : ''}" min="0">
                     </div>
                 </div>
             `;
