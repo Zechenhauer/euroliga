@@ -50,19 +50,6 @@
             margin-bottom: 5px;
         }
 
-        .header-logo {
-            width: 55px;
-            height: 55px;
-            border-radius: 50%;
-            object-fit: contain;
-            border: 2px solid var(--el-gold);
-            background: #ffffff;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-            padding: 2px;
-            box-sizing: border-box;
-            flex-shrink: 0;
-        }
-
         h2 {
             text-align: center;
             margin: 0;
@@ -179,6 +166,30 @@
         tr.rank-last td {
             background: var(--accent-yellow);
             color: #e3b341;
+        }
+
+        /* Hervorhebung für deutsche Teams in der Gesamttabelle */
+        tr.german-team-row td {
+            font-weight: bold;
+            color: var(--el-bright-gold);
+            background: rgba(245, 158, 11, 0.15);
+            border-top: 1px solid rgba(245, 158, 11, 0.4);
+            border-bottom: 1px solid rgba(245, 158, 11, 0.4);
+        }
+
+        /* Hervorhebung für deutsche Spiele im Spielplan */
+        tr.german-match-row {
+            background: rgba(245, 158, 11, 0.12);
+            border-left: 3px solid var(--el-gold);
+            border-right: 3px solid var(--el-gold);
+        }
+        tr.german-match-row td {
+            border-top: 1px solid rgba(245, 158, 11, 0.3);
+            border-bottom: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .german-highlight {
+            color: var(--el-bright-gold) !important;
+            font-weight: bold;
         }
 
         .admin-toggle-wrapper {
@@ -345,11 +356,14 @@
 
 <script>
     const SUPABASE_URL = 'https://lhusylpjnujlqomougmg.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxodXN5bHBqbnVqbHFvbW91Z21nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkwMzA0ODIsImV4cCI6MjEwNDYwNjQ4Mn0.9ugazAA5pEdy9uSaJQWa5BMb7EwSH9d-h5K8ln_PF5A'; // Hier deinen echten anon-Key einfügen
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxodXN5bHBqbnVqbHFvbW91Z21nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkwMzA0ODIsImV4cCI6MjEwNDYwNjQ4Mn0.9ugazAA5pEdy9uSaJQWa5BMb7EwSH9d-h5K8ln_PF5A'; 
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const ADMIN_PIN = "1919";
     let isAdmin = false;
+
+    // Liste der deutschen Vereine zur Identifikation
+    const germanTeams = ["Bayer 04 Leverkusen", "1899 Hoffenheim"];
 
     let leagueData = {
         currentMatchday: 1,
@@ -619,6 +633,10 @@
             let formattedDate = m.date ? m.date.split('-').reverse().join('.') : '-';
             let timeStr = m.time ? ` ${m.time} Uhr` : '';
 
+            let isGermanMatch = germanTeams.includes(m.home) || germanTeams.includes(m.away);
+            let homeClass = germanTeams.includes(m.home) ? 'german-highlight' : '';
+            let awayClass = germanTeams.includes(m.away) ? 'german-highlight' : '';
+
             let resultDisplay = hasResult 
                 ? `<strong>${m.homeScore}:${m.awayScore}</strong>` 
                 : `<span style="color: var(--text-muted); font-style: italic;">vs</span>`;
@@ -626,11 +644,13 @@
             let deleteBtn = isAdmin ? `<button class="btn-danger" onclick="deleteMatchResult(${idx})" title="Ergebnis löschen">✕</button>` : '';
 
             let tr = document.createElement('tr');
+            if (isGermanMatch) tr.classList.add('german-match-row');
+
             tr.innerHTML = `
                 <td style="font-size: 0.8rem; color: #ffffff;">${formattedDate}${timeStr}</td>
-                <td style="text-align: right;">${m.home}</td>
+                <td class="${homeClass}" style="text-align: right;">${m.home}</td>
                 <td style="text-align: center;">${resultDisplay}</td>
-                <td>${m.away}</td>
+                <td class="${awayClass}">${m.away}</td>
                 <td style="text-align: center;">${deleteBtn}</td>
             `;
             tbody.appendChild(tr);
@@ -687,6 +707,10 @@
             let tr = document.createElement('tr');
             if (idx === 0) tr.classList.add('rank-first');
             else if (idx >= sorted.length - 3 && sorted.length > 3) tr.classList.add('rank-last');
+            
+            if (germanTeams.includes(s.name)) {
+                tr.classList.add('german-team-row');
+            }
 
             let diff = s.goalsFor - s.goalsAgainst;
 
