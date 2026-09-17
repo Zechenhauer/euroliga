@@ -16,9 +16,6 @@
             --el-gold: #f59e0b;
             --el-gold-hover: #d97706;
             --el-dark: #78350f;
-            --accent-green: rgba(46, 160, 67, 0.25);
-            --accent-blue: rgba(56, 139, 253, 0.22);
-            --accent-yellow: rgba(227, 179, 64, 0.22);
             --el-bright-gold: #fbbf24;
         }
 
@@ -159,24 +156,32 @@
         }
         tr:hover { background-color: rgba(245, 158, 11, 0.03); }
 
-        /* Tabellen-Markierungen nach UEFA-Modus */
-        tr.rank-eight td {
-            background: var(--accent-green);
-            color: #3fb950;
-            font-weight: bold;
+        /* Dezente Trennlinien und Markierungen in der Tabelle */
+        tr.rank-eight-end td {
+            border-bottom: 2px solid rgba(245, 158, 11, 0.4);
         }
-        tr.rank-playoff td {
-            background: var(--accent-blue);
-            color: #58a6ff;
+        tr.rank-playoff-end td {
+            border-bottom: 2px solid rgba(139, 148, 158, 0.4);
         }
+
+        /* Dezentes Indikator-Pünktchen für die Gruppen vor dem Platz */
+        .zone-indicator {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        .zone-top8 { background-color: #3fb950; }       /* Grün für Achtelfinale */
+        .zone-playoff { background-color: #8b949e; }   /* Dezent Grau/Silber für Play-Offs */
+        .zone-out { background-color: transparent; }     /* Nichts für Plätze 25-36 */
 
         /* Hervorhebung für deutsche Teams in der Gesamttabelle */
         tr.german-team-row td {
             font-weight: bold;
             color: var(--el-bright-gold);
-            background: rgba(245, 158, 11, 0.2) !important;
-            border-top: 1px solid rgba(245, 158, 11, 0.4);
-            border-bottom: 1px solid rgba(245, 158, 11, 0.4);
+            background: rgba(245, 158, 11, 0.12) !important;
         }
 
         /* Hervorhebung für deutsche Spiele im Spielplan */
@@ -339,10 +344,10 @@
                 <tbody id="tableBody"></tbody>
             </table>
         </div>
-        <!-- Legende unter der Tabelle -->
-        <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 12px; font-size: 0.75rem; color: var(--text-muted);">
-            <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 14px; height: 14px; background: var(--accent-green); border-radius: 2px; display: inline-block;"></span> Plätze 1 – 8: Direkt fürs Achtelfinale qualifiziert</div>
-            <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 14px; height: 14px; background: var(--accent-blue); border-radius: 2px; display: inline-block;"></span> Plätze 9 – 24: Qualifiziert für die Play-Off-Runde</div>
+        <!-- Dezente Legende unter der Tabelle -->
+        <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-top: 14px; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 10px;">
+            <div style="display: flex; align-items: center; gap: 6px;"><span class="zone-indicator zone-top8"></span> <strong>Plätze 1 – 8:</strong> Direkt fürs Achtelfinale</div>
+            <div style="display: flex; align-items: center; gap: 6px;"><span class="zone-indicator zone-playoff"></span> <strong>Plätze 9 – 24:</strong> Play-Off-Runde</div>
         </div>
     </div>
 
@@ -712,14 +717,19 @@
         sorted.forEach((s, idx) => {
             let tr = document.createElement('tr');
             
-            // UEFA Europa League Platzierungs-Klassen
-            if (idx < 8) {
-                tr.classList.add('rank-eight');
-            } else if (idx >= 8 && idx < 24) {
-                tr.classList.add('rank-playoff');
+            // Dezente Trennlinien nach Platz 8 und Platz 24
+            if (idx === 7) {
+                tr.classList.add('rank-eight-end');
+            } else if (idx === 23) {
+                tr.classList.add('rank-playoff-end');
             }
 
-            // Deutsche Teams erhalten Priorität in der Markierung
+            // Kleines Indikator-Pünktchen vor der Platzierung
+            let indicatorClass = 'zone-out';
+            if (idx < 8) indicatorClass = 'zone-top8';
+            else if (idx >= 8 && idx < 24) indicatorClass = 'zone-playoff';
+
+            // Deutsche Teams erhalten Gold-Färbung
             if (germanTeams.includes(s.name)) {
                 tr.classList.add('german-team-row');
             }
@@ -727,7 +737,7 @@
             let diff = s.goalsFor - s.goalsAgainst;
 
             tr.innerHTML = `
-                <td><strong>${idx + 1}.</strong></td>
+                <td><span class="zone-indicator ${indicatorClass}"></span><strong>${idx + 1}.</strong></td>
                 <td>${s.name}</td>
                 <td style="text-align: center;">${s.played}</td>
                 <td style="text-align: center;">${s.won}</td>
